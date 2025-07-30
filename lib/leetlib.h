@@ -1,6 +1,7 @@
 #pragma once
 
 #include <windows.h>
+#include <string>
 
 typedef unsigned long       DWORD;
 
@@ -42,12 +43,71 @@ void StopSnd(int handle);
 void ChangeVolume(int handle, float newvolume=1);
 
 
+struct Bullet
+{
+	float BX, BY, BA;
+	bool active;
+	Bullet() : BX(0), BY(0), BA(0), active(false) {}
+};
+
+//enemy functions
+struct Enemy {
+	int x, y, size, health;
+	bool exists;
+	Enemy() : x(0), y(0), size(0), exists(true), health(1) {}
+	/*Enemy(int health) : x(0), y(0), size(0), exists(true), health(health) {}*/
+	//void update() {
+	//	if (health <= 0) exists = false; // if health is 0 or less, the enemy does not exist
+	//}
+	void respawn(int health) {
+		exists = true; 
+		this->health = health; // respawn the enemy with the given health
+	}
+};
+
+Enemy * spawnEnemies();
+
+void respawnEnemies(Enemy* enemies, int health);
+
+//-----------------------------------------------------------------------------
+//Reset functions
+
+inline  void resetPosition(int& x, int& y){
+	x = 400; y = 550; // reset player x,y positions
+}
+
+inline void resetScore(unsigned int& score) {
+	score = 0; // reset score
+}
+
+inline void resetDiff(int& diff) {
+	diff = 1; // reset score
+}
+
+// reset bullets
+void resetBullets(struct Bullet* bullets);
+
+void resetGame(unsigned int& score, int& diff, int& UX, int& UY, Enemy* enemies, Bullet* bullets);
+
+//-----------------------------------------------------------------------------
+//Special screens Rendering
+void renderGameOver(unsigned int score, unsigned int highScore);
+
+void renderNextLevel(unsigned int score, int diff);
+
+//-----------------------------------------------------------------------------
+//Collision detection & hitboxes
 struct Hitbox
 {
-	// A hitbox is a rectangle, defined by its top left and bottom right corners
-	Hitbox(float x1,float y1,float x2, float y2) : x1(x1), y1(y1), x2(x2), y2(y2) {}
+	// A hitbox is an invisible rectangle, defined by its top left and bottom right corners
+	Hitbox(float x1, float y1, float x2, float y2) : x1(x1), y1(y1), x2(x2), y2(y2) {}
 	float x1, y1, x2, y2; // x1,y1 is top left, x2,y2 is bottom right
 };
 
 Hitbox getHitbox(float xcentre, float ycentre, float xsize, float ysize); // returns a rectangle with the hitbox of the sprite, for collision detection
 bool CheckCollision(Hitbox & e, Hitbox & p);
+
+
+//High score loading and saving
+int loadHighScore(const std::string & filename = "High Score.txt");
+void saveHighScore(int newScore, const std::string & filename = "High Score.txt");

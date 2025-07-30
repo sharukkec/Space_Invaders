@@ -1,31 +1,27 @@
 #include "lib/leetlib.h"
 #include <math.h>
+//#include <Windows.h>
 
 //int x[50];
 //int y[50];
-struct enemy {
-	int x, y, size;
-	bool exists;
-	enemy(): x(0), y(0), size(0), exists(true) {}
-};
-enemy enemies[50];
+
+
+//Enemy enemies[50];
 int time=0;
 
-struct bullet
-{
-	float BX,BY,BA;
-	bool active;
-	bullet(): BX(0), BY(0), BA(0), active(false) {}
-};
-
-bullet bullets[10];
 
 void Game()
 {
 	bool gameover = false;
-	bool win = false;
+	//bool win = false;
+	bool nextLevel = true;
 	unsigned int score = 0;
-	
+	unsigned int highScore = loadHighScore();
+	int diff = 1; // difficulty level changes the enemy health 
+	Bullet* bullets = new Bullet[10]; // array of bullets
+
+	int startTimer = 0 ;
+
 	void *Text[]=
 	{
 		LoadSprite("gfx/slet.png"),
@@ -46,32 +42,42 @@ void Game()
 
 	// SETUP
 	int UX=400, UY=550;
-	void *Enemy = LoadSprite("gfx/Little Invader.png");
-	void* EnemySniper = LoadSprite("gfx/Invader Sniper.png");
-	void *U = LoadSprite("gfx/Big Invader.png");
-	void *bull = LoadSprite("gfx/bullet.png");
+	void *enemySprite = LoadSprite("gfx/Little Invader.png");
+	void* enemySniperSprite = LoadSprite("gfx/Invader Sniper.png");
+	void *uSprite = LoadSprite("gfx/Big Invader.png");
+	void *bullSprite = LoadSprite("gfx/bullet.png");
 
-	for(int n=0;n<50;++n)
+	/*for(int n=0;n<50;++n)
 	{
 		enemies[n].x=(n%10)*60+120;
 		enemies[n].y =(n/10)*60+70;
 		enemies[n].size = 10 + (n % 17);
-	}
+	}*/
+	Enemy* enemies = spawnEnemies(); // spawn enemies
 
 	//Game cycle
 	while (true) {
 		
 		++time;
-		if (WantQuit()) return;
-		if (IsKeyDown(VK_ESCAPE)) return;
+		if (WantQuit()) { delete[] enemies; delete[] bullets; saveHighScore(highScore); return; }
+		if (IsKeyDown(VK_ESCAPE)) { delete[] enemies; delete[] bullets; saveHighScore(highScore); return; }
 
 		if (gameover) {
-			StartTextBatch(50);
-			DrawSomeText(400, 300, 50, 0xffffffff, true, "Game Over");
-			DrawSomeText(400, 380, 30, 0xffffffff, true, "Your score: %d", score);
-			DrawSomeText(400, 450, 15, 0xffffffff, true, "Best score: %d", 228);
-			EndTextBatch();
-			Flip();
+			if (score > highScore)
+				highScore = score;
+			if ( time - startTimer > 120  && IsKeyDown(VK_SPACE)) {
+				resetGame(score, diff, UX, UY, enemies, bullets); // reset game state
+				gameover = false; // reset gameover flag
+				nextLevel = true; // reset next level flag
+			} 
+			renderGameOver(score, highScore);
+			continue; // skip the rest of the loop
+		}
+
+		if (nextLevel) {
+			if ((startTimer == 0 || (time - startTimer > 120)) && IsKeyDown( VK_SPACE))
+				nextLevel = false; // wait for space to continue
+			renderNextLevel(score, diff);
 			continue; // skip the rest of the loop
 		}
 
@@ -82,6 +88,7 @@ void Game()
 		for (int n = 0; n < 50; ++n)
 		{
 			if (!enemies[n].exists) continue; // skip if enemy does not exist
+			enemyCounter++;
 			int xo = 0, yo = 0;
 			int n1 = time + n * n + n * n * n;
 			int n2 = time + n + n * n + n * n * n * 3;
@@ -93,29 +100,45 @@ void Game()
 				yo += (1 - cos((n2 & 0xff) / 256.0f * 2.f * 3.141592)) * (150 + ((n * n) % 9));
 
 			Hitbox enemyHitbox = getHitbox(enemies[n].x + xo, enemies[n].y + yo, enemies[n].size, enemies[n].size); // enemy hitbox
-			if (CheckCollision(enemyHitbox, playerHitbox))
+			if (CheckCollision(enemyHitbox, playerHitbox)) {
 				gameover = true;
+				startTimer = time;
+			}
 			for (int i = 0; i < 10; ++i)
 			{
 				if (!bullets[i].active) continue; // skip if bullet is not active
 				Hitbox bulletHitbox = getHitbox(bullets[i].BX, bullets[i].BY, 10, 10); // bullet hitbox
 				if (CheckCollision(enemyHitbox, bulletHitbox))
 				{
-					enemies[n].exists = false; // enemy is hit
+					enemies[n].health--;
+					if (enemies[n].health <= 0) {
+						enemies[n].exists = false;
+						score += 100; // enemy is dead, increase score
+					}
 					bullets[i].active = false; // bullet is used
-					score += 100; // increase score
+					 
 				}
 			}
 
 			if (!enemies[n].exists) continue;
 			if (n < 10)
-				DrawSprite(EnemySniper, enemies[n].x + xo, enemies[n].y + yo, enemies[n].size, enemies[n].size, 0, 0xffffffff);
+				DrawSprite(enemySniperSprite, enemies[n].x + xo, enemies[n].y + yo, enemies[n].size, enemies[n].size, 0, 0xffffffff);
 			else
-				DrawSprite(Enemy, enemies[n].x + xo, enemies[n].y + yo, enemies[n].size, enemies[n].size, 0, 0xffffffff);
+				DrawSprite(enemySprite, enemies[n].x + xo, enemies[n].y + yo, enemies[n].size, enemies[n].size, 0, 0xffffffff);
+		}
+
+		//respawn enemies if all are dead and increase difficulty
+		if (enemyCounter == 0) {
+			startTimer = time;
+			diff++;
+			respawnEnemies(enemies, diff); // respawn enemies with increased health
+			resetBullets(bullets); // reset bullets
+			resetPosition(UX, UY); // reset player position
+			nextLevel = true; // set next level flag
 		}
 
 		//player rendering
-		DrawSprite(U, UX += IsKeyDown(VK_LEFT) ? -7 : IsKeyDown(VK_RIGHT) ? 7 : 0, UY, 50, 50, 3.141592 + sin(time * 0.1) * 0.1, 0xffffffff);
+		DrawSprite(uSprite, UX += IsKeyDown(VK_LEFT) ? -7 : IsKeyDown(VK_RIGHT) ? 7 : 0, UY, 50, 50, 3.141592 + sin(time * 0.1) * 0.1, 0xffffffff);
 		
 		//Text rendering
 		StartTextBatch(20);
@@ -134,7 +157,7 @@ void Game()
 		for (int n = 0; n < 10; ++n)
 		{
 			if (!bullets[n].active) continue; // skip if bullet is not active
-			DrawSprite(bull, bullets[n].BX, bullets[n].BY -= 4, 10, 10, bullets[n].BA += 0.1f, 0xffffffff);
+			DrawSprite(bullSprite, bullets[n].BX, bullets[n].BY -= 4, 10, 10, bullets[n].BA += 0.1f, 0xffffffff);
 			if (bullets[n].BY < 0) { bullets[n].active = false; continue; } // bullet is out of screen
 		}
 

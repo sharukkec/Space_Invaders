@@ -20,6 +20,9 @@
 #include <map>
 #include <direct.h>
 #include <malloc.h>
+#include <fstream>
+#include <string>
+
 //#include "resource.h"
 
 //#include "joypad.h"
@@ -882,6 +885,79 @@ void DrawLineList(Vertex *verts, int numlines)
 }
 */
 
+
+//enemy spawn and respawn
+Enemy * spawnEnemies() {
+	Enemy * enemies = new Enemy[50];
+	for (int n = 0; n < 50; ++n)
+	{
+		enemies[n].x = (n % 10) * 60 + 120;
+		enemies[n].y = (n / 10) * 60 + 70;
+		enemies[n].size = 10 + (n % 17);
+	}
+	return enemies;
+}
+
+void respawnEnemies(Enemy* enemies, int health) {
+	for (int n = 0; n < 50; ++n)
+	{
+		enemies[n].respawn(health);
+	}
+}
+
+//High score functions
+
+int loadHighScore(const std::string& filename) {
+	std::ifstream file(filename);
+	int highScore = 0;
+	if (file >> highScore) {
+		return highScore;
+	}
+	return 0; // default if file missing or unreadable
+}
+
+void saveHighScore(int newScore, const std::string& filename) {
+	std::ofstream file(filename);
+	if (file) {
+		file << newScore;
+	}
+}
+
+void resetBullets(struct Bullet* bullets) {
+	for (int i = 0; i < 10; ++i) {
+		bullets[i].active = false; // reset bullets
+	}
+}
+
+void resetGame(unsigned int& score, int& diff, int& UX, int& UY, Enemy* enemies, Bullet* bullets) {
+	resetPosition(UX, UY); // reset player position
+	resetScore(score); // reset score
+	resetDiff(diff); // reset difficulty
+	respawnEnemies(enemies, diff); // respawn enemies with initial health
+	resetBullets(bullets); // reset bullets
+}
+
+//Render special screens
+void renderGameOver(unsigned int score, unsigned int highScore){
+	StartTextBatch(50);
+	DrawSomeText(400, 300, 50, 0xffffffff, true, "Game Over.");
+	DrawSomeText(400, 380, 30, 0xffffffff, true, "Your score: %d", score);
+	DrawSomeText(400, 450, 15, 0xffffffff, true, "Best score: %d", highScore);
+	DrawSomeText(400, 480, 15, 0xffffffff, true, "Press Space to restart");
+	DrawSomeText(400, 500, 15, 0xffffffff, true, "Press  Esc to quit");
+	EndTextBatch();
+	Flip();
+}
+
+void renderNextLevel(unsigned int score, int diff){
+	StartTextBatch(50);
+	DrawSomeText(400, 300, 50, 0xffffffff, true, "Level %d", diff);
+	DrawSomeText(400, 380, 20, 0xffffffff, true, "Press space to Continue.");
+	EndTextBatch();
+	Flip();
+}
+
+//Music and sound functions
 FSOUND_STREAM *music;
 
 int PlayMusic(const char *fname, float volume)
@@ -934,3 +1010,5 @@ void ChangeVolume(int handle, float volume)
 	if (volume>1) volume=1;
 	FSOUND_SetVolume(handle, (int)(volume*255));
 }
+
+
