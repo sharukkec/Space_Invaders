@@ -1,16 +1,3 @@
-//-----------------------------------------------------------------------------
-// File: tea2.cpp
-//
-// Desc: In this tutorial, we are rendering some tea2. This introduces the
-//       concept of the vertex buffer, a Direct3D object used to store
-//       tea2. tea2 can be defined any way we want by defining a
-//       custom structure and a custom FVF (flexible vertex format). In this
-//       tutorial, we are using tea2 that are transformed (meaning they
-//       are already in 2D window coordinates) and lit (meaning we are not
-//       using Direct3D lighting, but are supplying our own colors).
-//
-// Copyright (c) Microsoft Corporation. All rights reserved.
-//-----------------------------------------------------------------------------
 #pragma warning(disable:4995)
 #include "leetlib.h"
 #include <d3d9.h>
@@ -24,11 +11,6 @@
 #include <string>
 #include <vector>
 #include <memory>
-
-
-//#include "resource.h"
-
-//#include "joypad.h"
 #include "fmod/api/inc/fmod.h"
 #pragma comment(lib,"lib/fmod/api/lib/fmodvc.lib")
 #pragma comment(lib,"d3d9.lib")
@@ -83,7 +65,7 @@ void StartTextBatch(int size);
 
 void EndTextBatch();
 
-
+// Find a font of the given size, or create it if it doesn't exist
 LPD3DXFONT FindFont(int size) {
 	auto fit = fonts.find(size);
 	if (fit == fonts.end()) {
@@ -99,6 +81,7 @@ LPD3DXFONT FindFont(int size) {
 	return (fit != fonts.end()) ? fit->second : NULL;
 }
 
+// Release all fonts and sprites
 void ReleaseFonts()
 {
 	if (intextbatch) EndTextBatch();
@@ -111,6 +94,7 @@ void ReleaseFonts()
 	intextbatch=0;
 }
 
+// Start a text batch, allowing multiple DrawSomeText calls to be made before rendering
 void StartTextBatch(int size)
 {
 	if (intextbatch) EndTextBatch();
@@ -130,6 +114,7 @@ void StartTextBatch(int size)
 
 }
 
+// End the text batch, drawing all the text that was queued up
 void EndTextBatch()
 {
 	if (intextbatch)
@@ -144,7 +129,7 @@ void EndTextBatch()
 }
 
 
-
+// Draw some text at the specified position, with the specified size and color.
 int DrawSomeText(int x, int y, int size, int col, bool centered, const char *pFormat, ...)
 {
 	char debugText[8192];
@@ -244,9 +229,6 @@ HRESULT InitVB()
     return S_OK;
 }
 
-
-
-
 //-----------------------------------------------------------------------------
 // Name: Cleanup()
 // Desc: Releases all previously initialized objects
@@ -262,262 +244,9 @@ VOID Cleanup()
     if( g_pD3D != NULL )       
         g_pD3D->Release();
 
-	
+	ReleaseFonts();
+	FSOUND_Close();
 }
-
-
-
-
-//-----------------------------------------------------------------------------
-// Name: Render()
-// Desc: Draws the scene
-//-----------------------------------------------------------------------------
-
-/*
-float RotateU(float u, float v, float a)
-{
-	u=u-0.5;
-	v=v-0.5;
-	return u*cos(a)-v*sin(a)+0.5;
-}
-
-float RotateV(float u, float v, float a)
-{
-	u=u-0.5;
-	v=v-0.5;
-	return u*sin(a)+v*cos(a)+0.5;
-}
-
-void DrawQuad(float x1, float y1, float x2, float y2, DWORD col=0xffffffff, float a=0)
-{
-
-	CUSTOMVERTEX tea2[] =
-	{
-		{ x1, y1, 0.5f, 1.0f, col, RotateU(0,0,a), RotateV(0,0,a) }, // x, y, z, rhw, color
-		{ x2, y1, 0.5f, 1.0f, col, RotateU(1,0,a), RotateV(1,0,a)},
-		{ x1, y2, 0.5f, 1.0f, col, RotateU(0,1,a), RotateV(0,1,a)},
-		{ x2, y2, 0.5f, 1.0f, col, RotateU(1,1,a), RotateV(1,1,a)},
-	};
-
-	VOID* ptea2;
-	if( FAILED( g_pVB->Lock( 0, sizeof(tea2), (void**)&ptea2, D3DLOCK_DISCARD ) ) )
-		return ;
-	memcpy( ptea2, tea2, sizeof(tea2) );
-	g_pVB->Unlock();
-
-
-	g_pd3dDevice->DrawPrimitive( D3DPT_TRIANGLESTRIP, 0, 2 );
-}
-
-void DrawTri(float x1, float y1, float x2, float y2, float x3, float y3, DWORD col=0xffffffff)
-{
-	//OutputDebugString("triangle!");
-
-	CUSTOMVERTEX tea2[] =
-	{
-		{ x1, y1, 0.5f, 1.0f, col, 0,0 }, // x, y, z, rhw, color
-		{ x2, y2, 0.5f, 1.0f, col, 0,0},
-		{ x3, y3, 0.5f, 1.0f, col, 0,0},		
-		{ x3, y3, 0.5f, 1.0f, col, 0,0},	
-	};
-
-	VOID* ptea2=NULL;
-	if( FAILED( g_pVB->Lock( 0, sizeof(tea2), (void**)&ptea2, D3DLOCK_DISCARD ) ) )
-	{
-		OutputDebugString("lock failed");
-		return ;
-	}
-	memcpy( ptea2, tea2, sizeof(tea2) );
-	g_pVB->Unlock();
-
-
-	if (FAILED(g_pd3dDevice->DrawPrimitive( D3DPT_TRIANGLESTRIP, 0, 1 )))
-	{
-		OutputDebugString("draw failed");
-	}
-}
-
-
-
-/*
-VOID Render()
-{
-    // Clear the backbuffer to a blue color
-    g_pd3dDevice->Clear( 0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(128,128,128), 1.0f, 0 );
-	g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE,true);
-	
-	g_pd3dDevice->SetSamplerState(0,D3DSAMP_MAGFILTER,D3DTEXF_LINEAR);
-	g_pd3dDevice->SetSamplerState(0,D3DSAMP_MINFILTER,D3DTEXF_LINEAR);
-	g_pd3dDevice->SetTextureStageState(0,D3DTSS_COLORARG1,D3DTA_DIFFUSE);
-	g_pd3dDevice->SetTextureStageState(0,D3DTSS_COLORARG2,D3DTA_TEXTURE);
-	g_pd3dDevice->SetTextureStageState(0,D3DTSS_COLOROP,D3DTOP_MODULATE);
-
-	g_pd3dDevice->SetTextureStageState(0,D3DTSS_ALPHAARG1,D3DTA_DIFFUSE);
-	g_pd3dDevice->SetTextureStageState(0,D3DTSS_ALPHAARG2,D3DTA_TEXTURE);
-	g_pd3dDevice->SetTextureStageState(0,D3DTSS_ALPHAOP,D3DTOP_MODULATE);
-	
-
-	static float spinpos=0;
-	static float spinv=0;
-	static bool spinning=false;
-	static bool nomorespin=false;
-	srand(GetTickCount());
-    // Begin the scene
-    if( SUCCEEDED( g_pd3dDevice->BeginScene() ) )
-    {
-        // Draw the triangles in the vertex buffer. This is broken into a few
-        // steps. We are passing the tea2 down a "stream", so first we need
-        // to specify the source of that stream, which is our vertex buffer. Then
-        // we need to let D3D know what vertex shader to use. Full, custom vertex
-        // shaders are an advanced topic, but in most cases the vertex shader is
-        // just the FVF, so that D3D knows what type of tea2 we are dealing
-        // with. Finally, we call DrawPrimitive() which does the actual rendering
-        // of our geometry (in this case, just one triangle).
-        g_pd3dDevice->SetStreamSource( 0, g_pVB, 0, sizeof(CUSTOMVERTEX) );
-        g_pd3dDevice->SetFVF( D3DFVF_CUSTOMVERTEX );
-        
-		g_pd3dDevice->SetRenderState(D3DRS_SRCBLEND,D3DBLEND_SRCALPHA);
-		g_pd3dDevice->SetRenderState(D3DRS_DESTBLEND,D3DBLEND_INVSRCALPHA);
-		g_pd3dDevice->SetTexture(0,g_bgtex);
-		DrawQuad(0,0,1280,1024);
-		
-
-		
-		g_pd3dDevice->SetRenderState(D3DRS_SRCBLEND,D3DBLEND_DESTCOLOR);
-		g_pd3dDevice->SetRenderState(D3DRS_DESTBLEND,D3DBLEND_SRCCOLOR);
-		g_pd3dDevice->SetTexture(0,NULL);
-
-		float totw=0;
-		float temp[10];
-		for (int n=0;n<numpeople;n++)
-		{
-			// ratio weights: 
-			if (GetAsyncKeyState('R')<0)
-			{
-				temp[n]= (1.f+teas[n].consumed) / (1.f+teas[n].madecups);
-			}
-			else
-			{
-				// dave weights
-				temp[n]= powf(1.2f, teas[n].consumed - teas[n].madecups - teas[n].maderounds);
-			}
-			
-			
-			totw+=temp[n];
-		}
-		angles[0]=0;
-		for (int n=0;n<numpeople;n++)
-		{
-			temp[n]=temp[n]/totw*PI*2;
-			angles[n+1]=angles[n]+temp[n];
-		}
-		angles[numpeople]=PI*2;
-
-		for (int n=0;n<numpeople;n++)
-		{
-			int red=sinf(n*PI*2/numpeople)*100+128;
-			int green=sinf(n*PI*2/numpeople+PI*2/3)*100+128;
-			int blue=sinf(n*PI*2/numpeople+PI*4/3)*100+128;
-			DWORD col=(red<<16)+(green<<8)+(blue);
-			float t1=0,t2=0;
-			for (int i=0;i<16;i++)
-			{
-				t1=(i/16.f)*temp[n]+angles[n];
-				t2=((i+1)/16.f)*temp[n]+angles[n];
-				
-				DrawTri(640,512,640+500*sinf(t1),512-500*cosf(t1),640+500*sinf(t2),512-500*cosf(t2),col|0xff000000);
-
-			}
-		}
-
-		//exit(1);
-
-		g_pd3dDevice->SetRenderState(D3DRS_SRCBLEND,D3DBLEND_SRCALPHA);
-		g_pd3dDevice->SetRenderState(D3DRS_DESTBLEND,D3DBLEND_INVSRCALPHA);
-		g_pd3dDevice->SetTexture(0,g_arrow);
-
-		for (int n=0;n<numpeople;n++)
-		{			
-			float t1=(0.5)*temp[n]+angles[n];
-			DrawText(642+300*sinf(t1),514-300*cosf(t1),40,0xcf000000,true,teas[n].name);
-			DrawText(640+300*sinf(t1),512-300*cosf(t1),40,0xffffffff,true,teas[n].name);
-		}
-		for (int c1=0;c1<64;c1++)
-		{
-			float arrowsize=384;
-			DrawQuad(640-arrowsize,512-arrowsize,640+arrowsize,512+arrowsize,0x08ffffff, -spinpos-spinv*c1/64.f);
-		}
-		//if (GetAsyncKeyState(VK_ESCAPE)&1) PostQuitMessage(0);
-		if (GetAsyncKeyState(VK_BACK)<0)
-		{
-			spinv*=0.8;
-		}
-		if (GetAsyncKeyState(VK_SPACE)<0)
-		{
-			if (nomorespin==false) spinv+=0.01+rand()/3276800.f;
-			if (spinv>0.2) spinning=true;
-		}
-		else if (spinning) nomorespin=true;
-		spinpos+=spinv;
-		spinv*=0.99f;
-		if (spinv<0.001f) 
-		{
-			spinv=0;
-			if (spinning)
-			{
-				spinning=0;
-				while (spinpos<0) spinpos+=PI*2;
-				while (spinpos>=PI*2) spinpos-=PI*2;
-				int winner=0;
-				for (winner=0;winner<numpeople;winner++) if (spinpos>=angles[winner] && spinpos<angles[winner+1]) break;				
-				winner=(winner%numpeople);
-
-				
-				
-				sprintf(winnerbuf,"%s is the winner! MAKE SOME TEA BITCH!",teas[winner].name);
-				if (DialogBox(GetModuleHandle(NULL),MAKEINTRESOURCE(IDD_DIALOG1),NULL,(DLGPROC)mydialogproc)==IDOK && numcups>0)
-							
-				//if (MessageBox(GetForegroundWindow(),buf,"tea!",MB_ICONEXCLAMATION|MB_OKCANCEL)==IDOK)
-				{
-					teas[winner].maderounds++;
-					teas[winner].madecups+=numcups;
-					writetea();
-				}
-
-				nomorespin=false;
-			}
-		}
-		if (spinpos>PI*2) spinpos-=PI*2;
-
-		if (GetAsyncKeyState(VK_SHIFT)<0)
-		{		
-			for (int c1=0;c1<numpeople;c1++)
-			{
-				char buf[1024];sprintf(buf,"%9s made %2d rounds, %3d cups, drank %3d cups",teas[c1].name,teas[c1].maderounds,teas[c1].madecups,teas[c1].consumed);
-				DrawText(2,2+c1*24,20,0x80000000,false,buf);
-				DrawText(0,0+c1*24,20,0xffffffff,false,buf);
-
-			}
-		}
-		else
-		{
-			DrawText(0, 0,20,0xffffffff,false,"Press SPACE to spin!");
-			DrawText(0,24,20,0xffffffff,false,"Press BACKSPACE to brake");
-			DrawText(0,48,20,0xffffffff,false,"Press SHIFT for stats");
-			
-		}
-
-        // End the scene
-        g_pd3dDevice->EndScene();
-    }
-
-    // Present the backbuffer contents to the display
-    g_pd3dDevice->Present( NULL, NULL, NULL, NULL );
-	Sleep(10);
-}
-
-*/
-
 
 //-----------------------------------------------------------------------------
 // Name: MsgProc()
@@ -617,7 +346,7 @@ INT WINAPI WinMain( HINSTANCE hInst, HINSTANCE, LPSTR cmd, INT )
     // Register the window class
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, MsgProc, 0L, 0L,
                       GetModuleHandle(NULL), NULL, NULL, NULL, NULL,
-                      "crapcrap", NULL };
+                      "Game", NULL };
     RegisterClassEx( &wc );
 
 	RECT r={0,0,WINDOW_WIDTH,WINDOW_HEIGHT };
@@ -627,13 +356,12 @@ INT WINAPI WinMain( HINSTANCE hInst, HINSTANCE, LPSTR cmd, INT )
 	AdjustWindowRect(&r,style,false);
 
     // Create the application's window
-     hWnd = CreateWindow( "crapcrap", "Space invaders",
+     hWnd = CreateWindow( "Game", "Space invaders",
                               style, 0,0,r.right-r.left,r.bottom-r.top,
                               GetDesktopWindow(), NULL, wc.hInstance, NULL );
 
+	FSOUND_Init(44100, 42, 0);
 	
-	 FSOUND_Init(44100, 42, 0);
-
 	QueryPerformanceCounter(&starttime);
 	QueryPerformanceFrequency(&freq);
     // Initialize Direct3D
@@ -655,13 +383,18 @@ INT WINAPI WinMain( HINSTANCE hInst, HINSTANCE, LPSTR cmd, INT )
 			//DestroyWindow(hWnd);
         }
     }
-	FSOUND_Close();
-    UnregisterClass( "crapcrap", wc.hInstance );
+	
+	// Cleanup everything used 
+	Cleanup();
+	// Release all fonts and sprites
+	// Cleanup and close the application
+    UnregisterClass( "Game", wc.hInstance );
     return 0;
 }
 
-//////////////////////////////////
-
+//------------------------------------------------------------------------------
+///Handles Windows messages, checks for quit events, and prepares the Direct3D device
+/// for a new frame by setting rendering states and clearing the screen.
 bool WantQuit(DWORD clearcol)
 {
 	// Enter the message loop
@@ -674,7 +407,10 @@ bool WantQuit(DWORD clearcol)
 		if (msg.message==WM_QUIT) return true;
 	}	
 
+	// Clear the backbuffer to a solid color
 	g_pd3dDevice->Clear( 0, NULL, D3DCLEAR_TARGET, clearcol, 1.0f, 0 );
+
+	// Set the render states
 	g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE,true);
 	g_pd3dDevice->SetRenderState(D3DRS_ZENABLE,false);
 
@@ -703,6 +439,7 @@ bool WantQuit(DWORD clearcol)
 	return false;
 }
 
+// Get the time in milliseconds since the start of the program
 int	GetTimeInMS() // ...since start of program
 {
 	LARGE_INTEGER arse;
@@ -710,6 +447,7 @@ int	GetTimeInMS() // ...since start of program
 	return ((arse.QuadPart-starttime.QuadPart)*1000) / freq.QuadPart;
 }
 
+// Flip the backbuffer to the front, presenting the rendered scene to the display
 void Flip()
 {
 	
@@ -729,9 +467,7 @@ void Flip()
 	
 }
 
-
-
-
+// Get the current mouse position relative to the window
 void GetMousePos(float &x, float &y) // 0,0 is top left; 800,600 is bottom right
 {
 	POINT p;
@@ -741,12 +477,14 @@ void GetMousePos(float &x, float &y) // 0,0 is top left; 800,600 is bottom right
 	y=p.y;	
 }
 
+// Checks whether a specific key is currently being held down.
 bool IsKeyDown(int key) // use windows VK_ codes for special keys, eg VK_LEFT; use capital chars for letter keys eg 'A', '0'
 {
 	return g_keydown[key&255];
 }
 
 // 'sprite output' 
+// Loads a sprite from a file and returns a pointer to the texture
 void * LoadSprite(const char *fname)
 {
 	IDirect3DTexture9 *tex = NULL;
@@ -754,17 +492,15 @@ void * LoadSprite(const char *fname)
 	return tex;
 }
 
+// sets the current texture for rendering
 void SetCurrentTexture(void *tex )
 {
 	IDirect3DTexture9 *t = (IDirect3DTexture9 *)tex;
 	g_pd3dDevice->SetTexture(0,t);
 }
 
-
-
-
 // 'sprite output' - draw a sprite at xcentre,ycentre, with size xsize,ysize, rotated by angle, with color col
-void DrawSprite(void *sprite, float xcentre, float ycentre, float xsize, float ysize, float angle, DWORD col )
+void DrawSprite(void *sprite, int xcentre, int ycentre, int xsize, int ysize, float angle, DWORD col )
 {
 	SetCurrentTexture(sprite);
 	float c=cosf(angle);
@@ -783,16 +519,18 @@ void DrawSprite(void *sprite, float xcentre, float ycentre, float xsize, float y
 	g_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, tea2, sizeof(CUSTOMVERTEX));
 }
 
+//Function to get a hitbox for future collision detection
 Hitbox getHitbox(int xcentre, int ycentre, int xsize, int ysize) {
 	return Hitbox(xcentre - xsize, ycentre - ysize, xcentre + xsize, ycentre + ysize);
 }
 
+// Check if two hitboxes collide
 bool CheckCollision(const Hitbox& e, const Hitbox& p) {
 	return ((p.x1 > e.x1 && p.x1 < e.x2 || p.x2 > e.x1 && p.x2 < e.x2) && (p.y1 > e.y1 && p.y1 < e.y2 || p.y2 > e.y1 && p.y2 < e.y2));
 	//return true;
 }
 
-//enemy spawn and respawn
+//enemy spawn
 std::vector<Enemy> spawnEnemies() {
 	std::vector<Enemy> enemies(50);
 	enemies.reserve(50);
@@ -806,6 +544,7 @@ std::vector<Enemy> spawnEnemies() {
 	return enemies;
 }
 
+// Respawn enemies with a given health value
 void respawnEnemies(std::vector<Enemy>& enemies, int health) {
 	for (int n = 0; n < 50; ++n)
 	{
@@ -813,8 +552,10 @@ void respawnEnemies(std::vector<Enemy>& enemies, int health) {
 	}
 }
 
+//------------------------------------------------------------------------------
 //High score functions
 
+// Load high score from a file
 int loadHighScore(const std::string& filename) {
 	std::ifstream file(filename);
 	int highScore = 0;
@@ -824,6 +565,7 @@ int loadHighScore(const std::string& filename) {
 	return 0; // default if file missing or unreadable
 }
 
+// Save a new high score to a file
 void saveHighScore(int newScore, const std::string& filename) {
 	std::ofstream file(filename);
 	if (file) {
@@ -831,12 +573,17 @@ void saveHighScore(int newScore, const std::string& filename) {
 	}
 }
 
+//------------------------------------------------------------------------------
+// Reset functions
+
+// Reset bullets state
 void resetBullets(std::vector<Bullet>& bullets) {
 	for (int i = 0; i < 10; ++i) {
 		bullets[i].active = false; // reset bullets
 	}
 }
 
+// Reset Game state
 void resetGame(unsigned int& score, int& diff, int& UX, int& UY, std::vector<Enemy>& enemies, std::vector<Bullet>& bullets) {
 	resetPosition(UX, UY); // reset player position
 	resetScore(score); // reset score
@@ -845,7 +592,10 @@ void resetGame(unsigned int& score, int& diff, int& UX, int& UY, std::vector<Ene
 	resetBullets(bullets); // reset bullets
 }
 
+//------------------------------------------------------------------------------
 //Render special screens
+
+// Render the Game Over screen with score and high score
 void renderGameOver(unsigned int score, unsigned int highScore){
 	StartTextBatch(50);
 	DrawSomeText(400, 300, 50, 0xffffffff, true, "Game Over.");
@@ -857,6 +607,7 @@ void renderGameOver(unsigned int score, unsigned int highScore){
 	Flip();
 }
 
+// Render the Next Level screen with score
 void renderNextLevel(unsigned int score, int diff){
 	StartTextBatch(50);
 	DrawSomeText(400, 300, 50, 0xffffffff, true, "Level %d", diff);
@@ -865,10 +616,18 @@ void renderNextLevel(unsigned int score, int diff){
 	Flip();
 }
 
+// Render the current score on the screen
+void renderScore(unsigned int score) {
+	StartTextBatch(20);
+	DrawSomeText(70, 550, 24, 0xffffffff, false, "Score: %d", score);
+	EndTextBatch();
+}
+
+//------------------------------------------------------------------------------
+// Render enemies and handle collisions with player and bullets
 bool renderEnemies(std::vector<Enemy> & enemies, std::vector<Bullet> & bullets, void* enemySprite, const Hitbox & playerHitbox,int time, int & startTimer, bool & gameover, unsigned int & score) {
 	int enemyCounter = 0;
 	//enemy rendering
-	float pi = 3.141592f;
 	for (int n = 0; n < 50; ++n)
 	{
 		Enemy& enemy = enemies[n];
@@ -878,11 +637,11 @@ bool renderEnemies(std::vector<Enemy> & enemies, std::vector<Bullet> & bullets, 
 		int n1 = time + n * n + n * n * n;
 		int n2 = time + n + n * n + n * n * n * 3;
 		if (((n1 >> 6) & 0x7) == 0x7)
-			xo += (1 - cos((n1 & 0x7f) / 64.0f * 2.f * pi)) * (20 + ((n * n) % 9));
+			xo += (1 - cos((n1 & 0x7f) / 64.0f * 2.f * PI)) * (20 + ((n * n) % 9));
 		if (((n1 >> 6) & 0x7) == 0x7)
-			yo += (sin((n1 & 0x7f) / 64.0f * 2.f * pi)) * (20 + ((n * n) % 9));
+			yo += (sin((n1 & 0x7f) / 64.0f * 2.f * PI)) * (20 + ((n * n) % 9));
 		if (((n2 >> 8) & 0xf) == 0xf)
-			yo += (1 - cos((n2 & 0xff) / 256.0f * 2.f * pi)) * (150 + ((n * n) % 9));
+			yo += (1 - cos((n2 & 0xff) / 256.0f * 2.f * PI)) * (150 + ((n * n) % 9));
 
 		int enemyX = enemy.x + xo; // calculate enemy x position
 		int enemyY = enemy.y + yo; // calculate enemy y position
@@ -917,15 +676,12 @@ bool renderEnemies(std::vector<Enemy> & enemies, std::vector<Bullet> & bullets, 
 	return enemyCounter > 0; // return true if there are enemies left
 }
 
-void renderScore(unsigned int score){
-	StartTextBatch(20);
-	DrawSomeText(70, 550, 24, 0xffffffff, false, "Score: %d", score);
-	EndTextBatch();
-}
 
+//------------------------------------------------------------------------------
 //Music and sound functions
 FSOUND_STREAM *music;
 
+// Play music from a file with a given volume (0.0 to 1.0)
 int PlayMusic(const char *fname, float volume)
 {
 	if (music) StopMusic();
@@ -937,6 +693,7 @@ int PlayMusic(const char *fname, float volume)
 	return chan;
 }
 
+// Stop the currently playing music
 void StopMusic()
 {
 	if (music)
@@ -953,6 +710,7 @@ void *LoadSnd(const char *fname, bool looped)
 	return FSOUND_Sample_Load(FSOUND_FREE,fname,flags,0,0);
 }
 
+// Play a sound sample with a given volume (0.0 to 1.0)
 int PlaySnd(void *sound, float volume)
 {
 	if (!sound) return -1;
@@ -963,12 +721,14 @@ int PlaySnd(void *sound, float volume)
 	return chan;
 }
 
+// Stop a sound sample by its handle
 void StopSnd(int handle)
 {
 	if (handle<=0) return ;
 	FSOUND_StopSound(handle);
 }
 
+// Change the volume of a sound sample by its handle (0.0 to 1.0)
 void ChangeVolume(int handle, float volume)
 {
 	if (handle<=0) return ;
@@ -976,5 +736,3 @@ void ChangeVolume(int handle, float volume)
 	if (volume>1) volume=1;
 	FSOUND_SetVolume(handle, (int)(volume*255));
 }
-
-
