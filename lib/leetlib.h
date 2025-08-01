@@ -66,16 +66,11 @@ struct Enemy {
 	};
 };
 
-struct EnemySniper : public Enemy {
-	Bullet bullet; // sniper bullet
-	EnemySniper() = default;
-	//void shootbullet()
-};
 
 
-std::vector<std::shared_ptr<Enemy>> spawnEnemies();
+std::vector<Enemy> spawnEnemies();
 
-void respawnEnemies(std::vector<std::shared_ptr<Enemy>>& enemies, int health);
+void respawnEnemies(std::vector<Enemy>& enemies, int health);
 
 //-----------------------------------------------------------------------------
 //Reset functions
@@ -93,9 +88,9 @@ inline void resetDiff(int& diff) {
 }
 
 // reset bullets
-void resetBullets(struct Bullet* bullets);
+void resetBullets(std::vector<Bullet> & bullets);
 
-void resetGame(unsigned int& score, int& diff, int& UX, int& UY, std::vector<std::shared_ptr<Enemy>>& enemies, Bullet* bullets);
+void resetGame(unsigned int& score, int& diff, int& UX, int& UY, std::vector<Enemy>& enemies, std::vector<Bullet> & bullets);
 
 //-----------------------------------------------------------------------------
 //Special screens Rendering
@@ -112,10 +107,14 @@ struct Hitbox
 	float x1, y1, x2, y2; // x1,y1 is top left, x2,y2 is bottom right
 };
 
-Hitbox getHitbox(float xcentre, float ycentre, float xsize, float ysize); // returns a rectangle with the hitbox of the sprite, for collision detection
-bool CheckCollision(Hitbox & e, Hitbox & p);
+Hitbox getHitbox(int xcentre, int ycentre, int xsize, int ysize); // returns a rectangle with the hitbox of the sprite, for collision detection
+bool CheckCollision(const Hitbox & e, const Hitbox & p);
 
 
 //High score loading and saving
 int loadHighScore(const std::string & filename = "High Score.txt");
 void saveHighScore(int newScore, const std::string & filename = "High Score.txt");
+
+bool renderEnemies(std::vector<Enemy>& enemies, std::vector<Bullet>& bullets, void* enemySprite, const Hitbox& playerHitbox, int time, int& startTimer, bool& gameover, unsigned int& score);
+
+void renderScore(unsigned int score);

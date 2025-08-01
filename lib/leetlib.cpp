@@ -655,7 +655,7 @@ INT WINAPI WinMain( HINSTANCE hInst, HINSTANCE, LPSTR cmd, INT )
 			//DestroyWindow(hWnd);
         }
     }
-
+	FSOUND_Close();
     UnregisterClass( "crapcrap", wc.hInstance );
     return 0;
 }
@@ -691,18 +691,14 @@ bool WantQuit(DWORD clearcol)
 	g_pd3dDevice->SetRenderState(D3DRS_SRCBLEND,D3DBLEND_SRCALPHA);
 	g_pd3dDevice->SetRenderState(D3DRS_DESTBLEND,D3DBLEND_INVSRCALPHA);
 	g_pd3dDevice->SetRenderState(D3DRS_LIGHTING,false);
-	//g_pd3dDevice->SetTexture(0,NULL);
 	g_pd3dDevice->SetRenderState(D3DRS_CULLMODE,D3DCULL_NONE);
 
 	D3DVIEWPORT9 vp={ 0,0, 800, 600, 0, 1};
-	//g_pd3dDevice->SetViewport(&vp);
 
 	g_pd3dDevice->SetFVF( D3DFVF_CUSTOMVERTEX );
 
 	// Begin the scene
 	g_pd3dDevice->BeginScene() ;
-
-	//UpdateDirectInput();
 
 	return false;
 }
@@ -750,12 +746,6 @@ bool IsKeyDown(int key) // use windows VK_ codes for special keys, eg VK_LEFT; u
 	return g_keydown[key&255];
 }
 
-/*bool IsKeyHitSinceLastFlip(int key)
-{
-	return g_keyhit[key&255] > 0;
-}
-*/
-
 // 'sprite output' 
 void * LoadSprite(const char *fname)
 {
@@ -771,18 +761,6 @@ void SetCurrentTexture(void *tex )
 }
 
 
-//void DrawRectangle(float x1, float y1, float x2, float y2, DWORD col )
-//{
-//	CUSTOMVERTEX tea2[] =
-//	{
-//		{ x1, y1, 0.5f, 1.0f, col, 0,0, }, // x, y, z, rhw, color
-//		{ x2, y1, 0.5f, 1.0f, col, 1,0, },
-//		{ x1, y2, 0.5f, 1.0f, col, 0,1, },
-//		{ x2, y2, 0.5f, 1.0f, col, 1,1, },
-//	};
-//	g_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, tea2, sizeof(CUSTOMVERTEX));
-//
-//}
 
 
 // 'sprite output' - draw a sprite at xcentre,ycentre, with size xsize,ysize, rotated by angle, with color col
@@ -805,114 +783,33 @@ void DrawSprite(void *sprite, float xcentre, float ycentre, float xsize, float y
 	g_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, tea2, sizeof(CUSTOMVERTEX));
 }
 
-Hitbox getHitbox(float xcentre, float ycentre, float xsize, float ysize) {
+Hitbox getHitbox(int xcentre, int ycentre, int xsize, int ysize) {
 	return Hitbox(xcentre - xsize, ycentre - ysize, xcentre + xsize, ycentre + ysize);
 }
 
-bool CheckCollision(Hitbox & e, Hitbox & p) {
+bool CheckCollision(const Hitbox& e, const Hitbox& p) {
 	return ((p.x1 > e.x1 && p.x1 < e.x2 || p.x2 > e.x1 && p.x2 < e.x2) && (p.y1 > e.y1 && p.y1 < e.y2 || p.y2 > e.y1 && p.y2 < e.y2));
 	//return true;
 }
 
-/*
-// 'flat colour' output
-void DrawLine(float x1, float y1, float x2, float y2, DWORD col ) // no texture
-{
-	IDirect3DBaseTexture9 *oldtex = NULL;
-	g_pd3dDevice->GetTexture(0, &oldtex);
-	g_pd3dDevice->SetTexture(0, NULL);
-	CUSTOMVERTEX tea2[] =
-	{
-		{ x1, y1, 0.5f, 1.0f, col, 0,0, }, // x, y, z, rhw, color
-		{ x2, y2, 0.5f, 1.0f, col, 1,0, }
-	};
-	g_pd3dDevice->DrawPrimitiveUP(D3DPT_LINELIST, 1, tea2, sizeof(CUSTOMVERTEX));
-
-	g_pd3dDevice->SetTexture(0, oldtex);
-}
-
-void DrawTriangle(float x1, float y1, float x2, float y2, float x3, float y3, DWORD col ) // flat colored tri, no texture
-{
-	IDirect3DBaseTexture9 *oldtex = NULL;
-	g_pd3dDevice->GetTexture(0, &oldtex);
-	g_pd3dDevice->SetTexture(0, NULL);
-	CUSTOMVERTEX tea2[] =
-	{
-		{ x1, y1, 0.5f, 1.0f, col, 0,0, }, // x, y, z, rhw, color
-		{ x2, y2, 0.5f, 1.0f, col, 1,0, },
-		{ x3, y3, 0.5f, 1.0f, col, 1,0, }
-	};
-	g_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 1, tea2, sizeof(CUSTOMVERTEX));
-
-	g_pd3dDevice->SetTexture(0, oldtex);
-}
-
-
-// 'advanced' output - for geeks only - for drawing arbitrarily textured triangles and line lists
-void DrawTriangleList(Vertex *verts, int numtris)
-{
-	CUSTOMVERTEX *vs = (CUSTOMVERTEX *)alloca(sizeof(CUSTOMVERTEX) * numtris * 3);
-	CUSTOMVERTEX *d=vs;
-	for (int n=0;n<numtris*3;n++)
-	{
-		d->x=verts->x;
-		d->y=verts->y;
-		d->z=0.5;
-		d->rhw=1;
-		d->color=verts->colour;
-		d->u=verts->u;
-		d->v=verts->v;
-		d++;
-		verts++;
-	}
-	g_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, numtris, vs, sizeof(CUSTOMVERTEX));
-}
-
-void DrawLineList(Vertex *verts, int numlines)
-{
-	CUSTOMVERTEX *vs = (CUSTOMVERTEX *)alloca(sizeof(CUSTOMVERTEX) * numlines * 2);
-	CUSTOMVERTEX *d=vs;
-	for (int n=0;n<numlines * 2;n++)
-	{
-		d->x=verts->x;
-		d->y=verts->y;
-		d->z=0.5;
-		d->rhw=1;
-		d->color=verts->colour;
-		d->u=verts->u;
-		d->v=verts->v;
-		d++;
-		verts++;
-	}
-	g_pd3dDevice->DrawPrimitiveUP(D3DPT_LINELIST, numlines, vs, sizeof(CUSTOMVERTEX));
-}
-*/
-
-
 //enemy spawn and respawn
-std::vector<std::shared_ptr<Enemy>> spawnEnemies() {
-	std::vector<std::shared_ptr<Enemy>> enemies;
+std::vector<Enemy> spawnEnemies() {
+	std::vector<Enemy> enemies(50);
 	enemies.reserve(50);
 	for (int n = 0; n < 50; ++n)
 	{
-		std::shared_ptr<Enemy> enemy;
-		if (n < 10)
-			enemy = std::make_shared<EnemySniper>();
-		else 
-			enemy = std::make_shared<Enemy>();
-		enemy->x = (n % 10) * 60 + 120;
-		enemy->y = (n / 10) * 60 + 70;
-		enemy->size = 10 + (n % 17);
-		enemies.push_back(enemy);
+		enemies[n].x = (n % 10) * 60 + 120;
+		enemies[n].y = (n / 10) * 60 + 70;
+		enemies[n].size = 10 + (n % 17);
 		
 	}
 	return enemies;
 }
 
-void respawnEnemies(std::vector<std::shared_ptr<Enemy>> & enemies, int health) {
+void respawnEnemies(std::vector<Enemy>& enemies, int health) {
 	for (int n = 0; n < 50; ++n)
 	{
-		enemies[n]->respawn(health);
+		enemies[n].respawn(health);
 	}
 }
 
@@ -934,13 +831,13 @@ void saveHighScore(int newScore, const std::string& filename) {
 	}
 }
 
-void resetBullets(struct Bullet* bullets) {
+void resetBullets(std::vector<Bullet>& bullets) {
 	for (int i = 0; i < 10; ++i) {
 		bullets[i].active = false; // reset bullets
 	}
 }
 
-void resetGame(unsigned int& score, int& diff, int& UX, int& UY, std::vector<std::shared_ptr<Enemy>>& enemies, Bullet* bullets) {
+void resetGame(unsigned int& score, int& diff, int& UX, int& UY, std::vector<Enemy>& enemies, std::vector<Bullet>& bullets) {
 	resetPosition(UX, UY); // reset player position
 	resetScore(score); // reset score
 	resetDiff(diff); // reset difficulty
@@ -966,6 +863,64 @@ void renderNextLevel(unsigned int score, int diff){
 	DrawSomeText(400, 380, 20, 0xffffffff, true, "Press space to Continue.");
 	EndTextBatch();
 	Flip();
+}
+
+bool renderEnemies(std::vector<Enemy> & enemies, std::vector<Bullet> & bullets, void* enemySprite, const Hitbox & playerHitbox,int time, int & startTimer, bool & gameover, unsigned int & score) {
+	int enemyCounter = 0;
+	//enemy rendering
+	float pi = 3.141592f;
+	for (int n = 0; n < 50; ++n)
+	{
+		Enemy& enemy = enemies[n];
+		if (!enemy.exists) continue; // skip if enemy does not exist
+		enemyCounter++;
+		int xo = 0, yo = 0;
+		int n1 = time + n * n + n * n * n;
+		int n2 = time + n + n * n + n * n * n * 3;
+		if (((n1 >> 6) & 0x7) == 0x7)
+			xo += (1 - cos((n1 & 0x7f) / 64.0f * 2.f * pi)) * (20 + ((n * n) % 9));
+		if (((n1 >> 6) & 0x7) == 0x7)
+			yo += (sin((n1 & 0x7f) / 64.0f * 2.f * pi)) * (20 + ((n * n) % 9));
+		if (((n2 >> 8) & 0xf) == 0xf)
+			yo += (1 - cos((n2 & 0xff) / 256.0f * 2.f * pi)) * (150 + ((n * n) % 9));
+
+		int enemyX = enemy.x + xo; // calculate enemy x position
+		int enemyY = enemy.y + yo; // calculate enemy y position
+		Hitbox enemyHitbox = getHitbox(enemyX, enemyY, enemy.size, enemy.size); // enemy hitbox
+
+		// check for collision with player
+		if (CheckCollision(enemyHitbox, playerHitbox)) {
+			gameover = true;
+			startTimer = time;
+		}
+
+		// check for collision with bullets
+		for (Bullet& bullet : bullets) {
+			if (!bullet.active) continue;
+
+			Hitbox bulletHitbox = getHitbox(bullet.BX, bullet.BY, 10, 10);
+			if (CheckCollision(enemyHitbox, bulletHitbox)) {
+				enemy.health--;
+				bullet.active = false;
+
+				if (enemy.health <= 0) {
+					enemy.exists = false;
+					score += 100;
+					break;
+				}
+			}
+		}
+
+		if (enemy.exists) 
+			DrawSprite(enemySprite, enemyX, enemyY, enemy.size, enemy.size, 0, 0xffffffff);
+	}
+	return enemyCounter > 0; // return true if there are enemies left
+}
+
+void renderScore(unsigned int score){
+	StartTextBatch(20);
+	DrawSomeText(70, 550, 24, 0xffffffff, false, "Score: %d", score);
+	EndTextBatch();
 }
 
 //Music and sound functions
