@@ -22,6 +22,9 @@
 #include <malloc.h>
 #include <fstream>
 #include <string>
+#include <vector>
+#include <memory>
+
 
 //#include "resource.h"
 
@@ -887,21 +890,29 @@ void DrawLineList(Vertex *verts, int numlines)
 
 
 //enemy spawn and respawn
-Enemy * spawnEnemies() {
-	Enemy * enemies = new Enemy[50];
+std::vector<std::shared_ptr<Enemy>> spawnEnemies() {
+	std::vector<std::shared_ptr<Enemy>> enemies;
+	enemies.reserve(50);
 	for (int n = 0; n < 50; ++n)
 	{
-		enemies[n].x = (n % 10) * 60 + 120;
-		enemies[n].y = (n / 10) * 60 + 70;
-		enemies[n].size = 10 + (n % 17);
+		std::shared_ptr<Enemy> enemy;
+		if (n < 10)
+			enemy = std::make_shared<EnemySniper>();
+		else 
+			enemy = std::make_shared<Enemy>();
+		enemy->x = (n % 10) * 60 + 120;
+		enemy->y = (n / 10) * 60 + 70;
+		enemy->size = 10 + (n % 17);
+		enemies.push_back(enemy);
+		
 	}
 	return enemies;
 }
 
-void respawnEnemies(Enemy* enemies, int health) {
+void respawnEnemies(std::vector<std::shared_ptr<Enemy>> & enemies, int health) {
 	for (int n = 0; n < 50; ++n)
 	{
-		enemies[n].respawn(health);
+		enemies[n]->respawn(health);
 	}
 }
 
@@ -929,7 +940,7 @@ void resetBullets(struct Bullet* bullets) {
 	}
 }
 
-void resetGame(unsigned int& score, int& diff, int& UX, int& UY, Enemy* enemies, Bullet* bullets) {
+void resetGame(unsigned int& score, int& diff, int& UX, int& UY, std::vector<std::shared_ptr<Enemy>>& enemies, Bullet* bullets) {
 	resetPosition(UX, UY); // reset player position
 	resetScore(score); // reset score
 	resetDiff(diff); // reset difficulty

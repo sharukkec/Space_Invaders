@@ -2,6 +2,9 @@
 
 #include <windows.h>
 #include <string>
+#include <vector>
+#include <memory>
+
 
 typedef unsigned long       DWORD;
 
@@ -54,20 +57,25 @@ struct Bullet
 struct Enemy {
 	int x, y, size, health;
 	bool exists;
-	Enemy() : x(0), y(0), size(0), exists(true), health(1) {}
-	/*Enemy(int health) : x(0), y(0), size(0), exists(true), health(health) {}*/
-	//void update() {
-	//	if (health <= 0) exists = false; // if health is 0 or less, the enemy does not exist
-	//}
+	Enemy() : x(0), y(0), size(0), exists(true), health(1){}
+	virtual ~Enemy() = default;
+
 	void respawn(int health) {
-		exists = true; 
+		exists = true;
 		this->health = health; // respawn the enemy with the given health
-	}
+	};
 };
 
-Enemy * spawnEnemies();
+struct EnemySniper : public Enemy {
+	Bullet bullet; // sniper bullet
+	EnemySniper() = default;
+	//void shootbullet()
+};
 
-void respawnEnemies(Enemy* enemies, int health);
+
+std::vector<std::shared_ptr<Enemy>> spawnEnemies();
+
+void respawnEnemies(std::vector<std::shared_ptr<Enemy>>& enemies, int health);
 
 //-----------------------------------------------------------------------------
 //Reset functions
@@ -87,7 +95,7 @@ inline void resetDiff(int& diff) {
 // reset bullets
 void resetBullets(struct Bullet* bullets);
 
-void resetGame(unsigned int& score, int& diff, int& UX, int& UY, Enemy* enemies, Bullet* bullets);
+void resetGame(unsigned int& score, int& diff, int& UX, int& UY, std::vector<std::shared_ptr<Enemy>>& enemies, Bullet* bullets);
 
 //-----------------------------------------------------------------------------
 //Special screens Rendering

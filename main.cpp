@@ -1,5 +1,7 @@
 #include "lib/leetlib.h"
 #include <math.h>
+#include <vector>
+#include <memory>
 //#include <Windows.h>
 
 //int x[50];
@@ -53,14 +55,15 @@ void Game()
 		enemies[n].y =(n/10)*60+70;
 		enemies[n].size = 10 + (n % 17);
 	}*/
-	Enemy* enemies = spawnEnemies(); // spawn enemies
 
+	//Enemy* enemies = spawnEnemies(); // spawn enemies
+	std::vector<std::shared_ptr<Enemy>> enemies = spawnEnemies();
 	//Game cycle
 	while (true) {
 		
 		++time;
-		if (WantQuit()) { delete[] enemies; delete[] bullets; saveHighScore(highScore); return; }
-		if (IsKeyDown(VK_ESCAPE)) { delete[] enemies; delete[] bullets; saveHighScore(highScore); return; }
+		if (WantQuit()) { delete[] bullets; saveHighScore(highScore); return; }
+		if (IsKeyDown(VK_ESCAPE)) { delete[] bullets; saveHighScore(highScore); return; }
 
 		if (gameover) {
 			if (score > highScore)
@@ -87,7 +90,7 @@ void Game()
 		//enemy rendering
 		for (int n = 0; n < 50; ++n)
 		{
-			if (!enemies[n].exists) continue; // skip if enemy does not exist
+			if (!enemies[n]->exists) continue; // skip if enemy does not exist
 			enemyCounter++;
 			int xo = 0, yo = 0;
 			int n1 = time + n * n + n * n * n;
@@ -99,20 +102,24 @@ void Game()
 			if (((n2 >> 8) & 0xf) == 0xf)
 				yo += (1 - cos((n2 & 0xff) / 256.0f * 2.f * 3.141592)) * (150 + ((n * n) % 9));
 
-			Hitbox enemyHitbox = getHitbox(enemies[n].x + xo, enemies[n].y + yo, enemies[n].size, enemies[n].size); // enemy hitbox
+			Hitbox enemyHitbox = getHitbox(enemies[n]->x + xo, enemies[n]->y + yo, enemies[n]->size, enemies[n]->size); // enemy hitbox
+			
+			// check for collision with player
 			if (CheckCollision(enemyHitbox, playerHitbox)) {
 				gameover = true;
 				startTimer = time;
 			}
+
+			// check for collision with bullets
 			for (int i = 0; i < 10; ++i)
 			{
 				if (!bullets[i].active) continue; // skip if bullet is not active
 				Hitbox bulletHitbox = getHitbox(bullets[i].BX, bullets[i].BY, 10, 10); // bullet hitbox
 				if (CheckCollision(enemyHitbox, bulletHitbox))
 				{
-					enemies[n].health--;
-					if (enemies[n].health <= 0) {
-						enemies[n].exists = false;
+					enemies[n]->health--;
+					if (enemies[n]->health <= 0) {
+						enemies[n]->exists = false;
 						score += 100; // enemy is dead, increase score
 					}
 					bullets[i].active = false; // bullet is used
@@ -120,11 +127,11 @@ void Game()
 				}
 			}
 
-			if (!enemies[n].exists) continue;
+			if (!enemies[n]->exists) continue;
 			if (n < 10)
-				DrawSprite(enemySniperSprite, enemies[n].x + xo, enemies[n].y + yo, enemies[n].size, enemies[n].size, 0, 0xffffffff);
+				DrawSprite(enemySniperSprite, enemies[n]->x + xo, enemies[n]->y + yo, enemies[n]->size, enemies[n]->size, 0, 0xffffffff);
 			else
-				DrawSprite(enemySprite, enemies[n].x + xo, enemies[n].y + yo, enemies[n].size, enemies[n].size, 0, 0xffffffff);
+				DrawSprite(enemySprite, enemies[n]->x + xo, enemies[n]->y + yo, enemies[n]->size, enemies[n]->size, 0, 0xffffffff);
 		}
 
 		//respawn enemies if all are dead and increase difficulty
