@@ -1,5 +1,5 @@
 #pragma warning(disable:4995)
-#include "leetlib.h"
+#include "lib.h"
 #include <d3d9.h>
 #include <d3dx9.h>		
 #include <strsafe.h>

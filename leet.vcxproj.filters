@@ -13,12 +13,12 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="lib\leetlib.cpp">
+    <ClCompile Include="lib\gamelib.cpp">
       <Filter>library</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lib\leetlib.h">
+    <ClInclude Include="lib\gamelib.h">
       <Filter>library</Filter>
     </ClInclude>
   </ItemGroup>
