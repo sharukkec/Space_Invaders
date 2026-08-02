@@ -1,5 +1,4 @@
-My implementation of the Space Invaders game using Direct3D 9 for graphics and fmod for sounds
-
+Debugged, refactored, and implemented missing features (custom collision detection system, game loop fixes) for an existing DirectX 9 C++ architecture.
 Controls:
 left & right arrow : move
 space: shoot
